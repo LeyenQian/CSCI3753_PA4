@@ -27,6 +27,7 @@ void pageit(Pentry q[MAXPROCESSES]) {
     static int initialized = 0;
     static int tick = 1; // artificial time
     static int timestamps[MAXPROCESSES][MAXPROCPAGES];
+    static int proccurr; // initial value: 0, value changes in future calling
 
     /* Local vars */
     int proctmp;
@@ -43,8 +44,14 @@ void pageit(Pentry q[MAXPROCESSES]) {
     }
     
     /* TODO: Implement LRU Paging */
-    fprintf(stderr, "pager-lru not yet implemented. Exiting...\n");
-    exit(EXIT_FAILURE);
+    // fprintf(stderr, "pager-lru not yet implemented. Exiting...\n");
+    // exit(EXIT_FAILURE);
+    for(proctmp = proccurr; proctmp < MAXPROCESSES; proctmp ++){
+        proccurr = proccurr == MAXPROCESSES - 1 ? 0 : proccurr + 1;
+        if (!q[proctmp].active) continue;
+
+        
+    }
 
     /* advance time for next pageit iteration */
     tick++;
