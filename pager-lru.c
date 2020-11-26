@@ -78,10 +78,10 @@ void pageit(Pentry q[MAXPROCESSES]) {
         }
 
         // try to find possible page to be swapped out
-        for(int page_idx = q[proc_curr].npages - 1; page_idx >= 0; page_idx --) {
+        for(int page_idx = 0; page_idx < q[proc_curr].npages; page_idx ++) {
             if(q[proc_curr].pages[page_idx] == PAGE_INVAILED) continue;
-            timestamps[proc_curr][page_idx] == tick ? timestamps[proc_curr][page_curr] = tick : pageout(proc_curr, page_idx);
-            break;
+            if(page_curr == page_idx) continue;
+            pageout(proc_curr, page_idx); break;
         }
     }
 
