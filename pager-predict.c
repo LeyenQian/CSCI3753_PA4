@@ -25,15 +25,6 @@
 #define PAGE_INVAILED   0   // page not allocated
 #define OP_PAGE_SUCCESS 1   // page [in/out] started, running or finished
 #define OP_PAGE_FAILED  0   // page [in/out] cannot start, because swapping [in/out]
-
-typedef struct _PAGE_PRED
-{
-    int next[2];
-    // ...
-}PAGE_PRED, *P_PAGE_PRED;
-
-int prev_pred_point[MAXPROCESSES];
-PAGE_PRED page_pred[MAXPROCPAGES] = {-1};
 // ******************************** new pre-define ****************************************************************
 
 
@@ -68,52 +59,48 @@ void pageit(Pentry q[MAXPROCESSES]) {
     // exit(EXIT_FAILURE);
     for(proc_curr = proc_last; proc_curr < MAXPROCESSES; proc_curr ++){
         proc_last = proc_last == MAXPROCESSES - 1 ? 0 : proc_last + 1;
-
-        if (q[proc_curr].active == PROC_INACTIVE) {
-            for(int idx = 0; idx < q[proc_curr].npages; idx ++)
-                if(q[proc_curr].pages[idx] == PAGE_VAILED) pageout(proc_curr, idx);
-            continue;
-        }
+        if (q[proc_curr].active == PROC_INACTIVE) continue;
         
         // get current page, only process invailed pages
         page_curr = q[proc_curr].pc / PAGESIZE;
-        if (q[proc_curr].pages[page_curr] == PAGE_INVAILED)
-        {
-            if(prev_pred_point[proc_curr] == -1) {
-                prev_pred_point[proc_curr] = page_curr;
-                pagein(proc_curr, page_curr);
+        if (q[proc_curr].pages[page_curr] == PAGE_VAILED) continue;
 
-                if(page_curr >= 0 && page_curr < MAXPROCPAGES - 2) {
-                    pagein(proc_curr, page_curr + 1);
-                    pagein(proc_curr, page_curr + 2);
-                    page_pred[prev_pred_point[proc_curr]].next[0] = page_curr + 1;
-                    page_pred[prev_pred_point[proc_curr]].next[0] = page_curr + 2;
-                } else {
-                    pagein(proc_curr, page_curr - 1);
-                    pagein(proc_curr, page_curr - 2);
-                    page_pred[prev_pred_point[proc_curr]].next[0] = page_curr - 1;
-                    page_pred[prev_pred_point[proc_curr]].next[0] = page_curr - 2;
-                }
-            } else {
-                for (int idx = 0; idx < 2; idx ++) {
-                    if (page_curr == page_pred[prev_pred_point[proc_curr]].next[idx]) continue;
-                    page_pred[prev_pred_point[proc_curr]].next[idx] = page_curr; break;
-                }
-                
-                for (int idx = 0; idx < 2; idx ++) {
-                    if(pagein(proc_curr, page_pred[prev_pred_point[proc_curr]].next[idx]) == OP_PAGE_SUCCESS) continue;
-                    for(int page_idx = 0; page_idx < q[proc_curr].npages; page_idx ++) {
-                        if(q[proc_curr].pages[page_idx] == PAGE_INVAILED) continue;
-                        if(page_curr == page_idx) continue;
-                        if(page_idx == page_pred[prev_pred_point[proc_curr]].next[0]) continue;
-                        if(page_idx == page_pred[prev_pred_point[proc_curr]].next[1]) continue;
-                        pageout(proc_curr, page_idx); break;
-                    }
-                    pagein(proc_curr, page_pred[prev_pred_point[proc_curr]].next[idx]);
-                }
-            }
+        if (page_curr == 0) {
+            for (int i = 3; i < 15; i++)
+                pageout(proc_curr, i);
         }
- 
+
+        // record tick, if pagein operation succeed
+        if (pagein(proc_curr, page_curr) == OP_PAGE_FAILED) {
+            for(int page_idx = 0; page_idx < q[proc_curr].npages; page_idx ++) {
+                if(q[proc_curr].pages[page_idx] == PAGE_INVAILED) continue;
+                if(page_idx == page_curr || page_idx == page_curr + 1 || page_idx == page_curr + 2) continue;
+                pageout(proc_curr, page_idx); break;
+            }
+            pagein(proc_curr, page_curr);
+        }
+        
+        if(q[proc_curr].pages[page_curr + 1] == PAGE_INVAILED)
+            if (pagein(proc_curr, page_curr + 1) == OP_PAGE_FAILED) {
+                for(int page_idx = 0; page_idx < q[proc_curr].npages; page_idx ++) {
+                    if(q[proc_curr].pages[page_idx] == PAGE_INVAILED) continue;
+                    if(page_idx == page_curr || page_idx == page_curr + 1 || page_idx == page_curr + 2) continue;
+                    pageout(proc_curr, page_idx); break;
+                }
+                pagein(proc_curr, page_curr + 1);
+            }
+
+        // if(q[proc_curr].pages[page_curr + 2] == PAGE_INVAILED)
+        //     if (pagein(proc_curr, page_curr + 2) == OP_PAGE_FAILED) {
+        //         for(int page_idx = 0; page_idx < q[proc_curr].npages; page_idx ++) {
+        //             if(q[proc_curr].pages[page_idx] == PAGE_INVAILED) continue;
+        //             if(page_idx == page_curr || page_idx == page_curr + 1 || page_idx == page_curr + 2) continue;
+        //             pageout(proc_curr, page_idx); break;
+        //         }
+        //         pagein(proc_curr, page_curr + 2);
+        //     }
+
+        break;
     }
 
     /* advance time for next pageit iteration */
