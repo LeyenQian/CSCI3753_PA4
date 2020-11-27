@@ -7,7 +7,7 @@ SUBMITFILES = pager-lru.c pager-predict.c
 
 .PHONY: all clean
 
-all: test-basic test-lru test-predict test-api
+all: clean test-basic test-lru test-predict test-api
 
 test-basic: simulator.o pager-basic.o
 	$(CC) $(LFLAGS) $^ -o $@
