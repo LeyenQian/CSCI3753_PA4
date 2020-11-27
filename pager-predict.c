@@ -60,47 +60,45 @@ void pageit(Pentry q[MAXPROCESSES]) {
     for(proc_curr = proc_last; proc_curr < MAXPROCESSES; proc_curr ++){
         proc_last = proc_last == MAXPROCESSES - 1 ? 0 : proc_last + 1;
         if (q[proc_curr].active == PROC_INACTIVE) continue;
-        
-        // get current page, only process invailed pages
         page_curr = q[proc_curr].pc / PAGESIZE;
-        if (q[proc_curr].pages[page_curr] == PAGE_VAILED) continue;
 
-        if (page_curr == 0) {
-            for (int i = 3; i < 15; i++)
-                pageout(proc_curr, i);
-        }
-
-        // record tick, if pagein operation succeed
-        if (pagein(proc_curr, page_curr) == OP_PAGE_FAILED) {
-            for(int page_idx = 0; page_idx < q[proc_curr].npages; page_idx ++) {
-                if(q[proc_curr].pages[page_idx] == PAGE_INVAILED) continue;
-                if(page_idx == page_curr || page_idx == page_curr + 1 || page_idx == page_curr + 2) continue;
-                pageout(proc_curr, page_idx); break;
-            }
+        // pageout previous one page, pagein current & next one page
+        if(q[proc_curr].pages[page_curr] == PAGE_INVAILED)
             pagein(proc_curr, page_curr);
-        }
-        
-        if(q[proc_curr].pages[page_curr + 1] == PAGE_INVAILED)
-            if (pagein(proc_curr, page_curr + 1) == OP_PAGE_FAILED) {
-                for(int page_idx = 0; page_idx < q[proc_curr].npages; page_idx ++) {
-                    if(q[proc_curr].pages[page_idx] == PAGE_INVAILED) continue;
-                    if(page_idx == page_curr || page_idx == page_curr + 1 || page_idx == page_curr + 2) continue;
-                    pageout(proc_curr, page_idx); break;
-                }
+
+        if(page_curr < MAXPROCPAGES - 1)
+            if(q[proc_curr].pages[page_curr + 1] == PAGE_INVAILED)
                 pagein(proc_curr, page_curr + 1);
-            }
 
-        // if(q[proc_curr].pages[page_curr + 2] == PAGE_INVAILED)
-        //     if (pagein(proc_curr, page_curr + 2) == OP_PAGE_FAILED) {
-        //         for(int page_idx = 0; page_idx < q[proc_curr].npages; page_idx ++) {
-        //             if(q[proc_curr].pages[page_idx] == PAGE_INVAILED) continue;
-        //             if(page_idx == page_curr || page_idx == page_curr + 1 || page_idx == page_curr + 2) continue;
-        //             pageout(proc_curr, page_idx); break;
-        //         }
-        //         pagein(proc_curr, page_curr + 2);
-        //     }
+        if(page_curr > 0)
+            if(q[proc_curr].pages[page_curr - 1] == PAGE_VAILED)
+                pageout(proc_curr, page_curr - 1);
 
-        break;
+        // additional page prediction (see program.c)
+        if(page_curr == 0) {
+            for(int idx = 2; idx < MAXPROCPAGES; idx ++)
+                if(q[proc_curr].pages[idx] == PAGE_VAILED) pageout(proc_curr, idx);
+        } else if(page_curr == 3) {     // 500 / 128 = 3.9; 1401 / 128 = 10.9; 1533 / 128 = 11.9
+            if(q[proc_curr].pages[0] == PAGE_INVAILED) pagein(proc_curr, 0);
+            if(q[proc_curr].pages[10] == PAGE_INVAILED) pagein(proc_curr, 10);
+            if(q[proc_curr].pages[11] == PAGE_INVAILED) pagein(proc_curr, 11);
+        } else if(page_curr == 4) {     // arrive 4, then no need for 10 & 11
+            if(q[proc_curr].pages[10] == PAGE_VAILED) pageout(proc_curr, 10);
+            if(q[proc_curr].pages[11] == PAGE_VAILED) pageout(proc_curr, 11);
+        } else if(page_curr == 8) {     // 1129 / 128 = 8.8
+            if(q[proc_curr].pages[0] == PAGE_INVAILED) pagein(proc_curr, 0);
+        } else if(page_curr == 9) {     // 1166 / 128 = 9.1; decending, no need for 13
+            if(q[proc_curr].pages[13] == PAGE_VAILED) pageout(proc_curr, 13);
+            if(q[proc_curr].pages[14] == PAGE_VAILED) pageout(proc_curr, 14);
+        } else if(page_curr == 10) {    // arrive 10, then no need for 3 & 4
+            if(q[proc_curr].pages[3] == PAGE_VAILED) pageout(proc_curr, 3);
+            if(q[proc_curr].pages[4] == PAGE_VAILED) pageout(proc_curr, 4);
+        } else if(page_curr == 11) {    // 1533 / 128 = 11.9
+            if(q[proc_curr].pages[0] == PAGE_INVAILED) pagein(proc_curr, 0);
+        } else if(page_curr == 12) {     // 1682 / 128 = 13.1; 1166 / 128 = 9.1; 1683 / 128 = 13.1
+            if(q[proc_curr].pages[0] == PAGE_INVAILED) pagein(proc_curr, 0);
+            if(q[proc_curr].pages[9] == PAGE_INVAILED) pagein(proc_curr, 9);
+        }
     }
 
     /* advance time for next pageit iteration */
