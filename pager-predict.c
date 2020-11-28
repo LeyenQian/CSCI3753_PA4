@@ -98,6 +98,8 @@ void pageit(Pentry q[MAXPROCESSES]) {
         } else if(page_curr == 12) {     // 1682 / 128 = 13.1; 1166 / 128 = 9.1; 1683 / 128 = 13.1
             if(q[proc_curr].pages[0] == PAGE_INVAILED) pagein(proc_curr, 0);
             if(q[proc_curr].pages[9] == PAGE_INVAILED) pagein(proc_curr, 9);
+        } else if(page_curr == 14) {    // arrive 14, then no need for 9
+            if(q[proc_curr].pages[9] == PAGE_VAILED) pageout(proc_curr, 9);
         }
     }
 
